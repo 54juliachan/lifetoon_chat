@@ -210,6 +210,14 @@ html,body {
 
 /*以下設定登入頁*/
 
+.indexbody{
+  /* 背景圖 */
+  background-image: url("img/background.jpg");
+  background-size: cover;       /* 填滿容器，保持比例，裁切多餘部分 */
+  background-position: center;  /* 置中背景 */
+  background-repeat: no-repeat; /* 不平鋪 */
+}
+
 .container {
   text-align: center;
   padding: 20px;
@@ -244,22 +252,22 @@ html,body {
 }
 
 .btn.primary {
-  background: #4C7DF0;
+  background: #000000;
   color: white;
 }
 
 .btn.primary:hover {
-  background: #3e6bd1;
+  background: #292929;
 }
 
 .btn.secondary {
   background: white;
-  border: 2px solid #4C7DF0;
-  color: #4C7DF0;
+  border: 2px solid #000000;
+  color: #000000;
 }
 
 .btn.secondary:hover {
-  background: #eef3ff;
+  background: #cfcfcf;
 }
 
 /* 輸入框群組 */
