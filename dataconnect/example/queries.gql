@@ -1,0 +1,38 @@
+# Query to list all public messages
+query ListPublicMessages @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public") {
+  messages(where: {isPublic: {eq: true}}) {
+    id
+    text
+    createdAt
+    user {
+      uid
+      displayName
+    }
+  }
+}
+
+# Mutation to create a new message
+mutation CreateMessage($text: String!, $isPublic: Boolean!) @auth(level: USER) {
+  message_insert(data: {
+    text: $text,
+    isPublic: $isPublic,
+    userUid_expr: "auth.uid"
+  })
+}
+
+# Mutation to update a message (only the owner can update)
+mutation UpdateMessage($id: UUID!, $text: String, $isPublic: Boolean) @auth(
+  expr: "query message(key: {id: $id}) { userUid }?.userUid == auth.uid"
+) {
+  message_update(key: {id: $id}, data: {
+    text: $text,
+    isPublic: $isPublic
+  })
+}
+
+# Mutation to delete a message (only the owner or admin can delete)
+mutation DeleteMessage($id: UUID!) @auth(
+  expr: "query message(key: {id: $id}) { userUid }?.userUid == auth.uid || auth.token.admin == true"
+) {
+  message_delete(key: {id: $id})
+}

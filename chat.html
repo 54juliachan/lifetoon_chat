@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Chat</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@100..900&family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- 聊天室容器 -->
+  <div class="chat-container">
+
+    <!-- 標題列 -->
+    <header class="chat-header">
+      <p id="chatTitle">AI Chat</p>
+    </header>
+
+    <!-- 訊息區域 -->
+    <div class="chat-messages" id="chatMessages">
+      <!-- 訊息會由 JS 插入 -->
+    </div>
+
+    <!-- 輸入區 -->
+    <div class="chat-input-area">
+      <input type="text" id="userInput" placeholder="輸入訊息...">
+      <button id="sendBtn">➤</button>
+    </div>
+
+  </div>
+
+  <script src="chat.js"></script>
+</body>
+</html>
