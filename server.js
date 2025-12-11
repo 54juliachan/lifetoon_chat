@@ -41,9 +41,10 @@ app.post("/chat", async (req, res) => {
     // 回傳給前端
     res.json({ message: { content: text } });
 
-  } catch (err) {
+  }  catch (err) {
     console.error("Gemini API Error:", err);
-    res.status(500).json({ error: "AI 回應失敗，請稍後再試" });
+    // 修改這裡：將錯誤訊息 (err.message) 直接回傳給前端，而不是回傳固定的中文
+    res.status(500).json({ error: err.message || "Unknown Error" });
   }
 });
 
