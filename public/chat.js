@@ -44,26 +44,27 @@ function addMessage(text, sender) {
 // 呼叫後端 API 獲取 AI 回覆
 async function aiReply(userText) {
   try {
-    // ❌ 錯誤寫法 (舊的)： const res = await fetch("http://localhost:3000/chat", ...
-    // ✅ 正確寫法：使用相對路徑 "/chat"
-    // 這樣無論是在 localhost 還是 Vercel，它都會自動連到當前的伺服器
     const res = await fetch("/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: userText })
     });
 
+    // 如果伺服器回傳錯誤 (例如 500)，嘗試讀取錯誤訊息
     if (!res.ok) {
-        throw new Error(`Server error: ${res.status}`);
+        const errorData = await res.json().catch(() => ({}));
+        // 優先顯示後端回傳的 error 欄位，如果沒有則顯示狀態碼
+        throw new Error(errorData.error || `Server Error: ${res.status}`);
     }
 
     const data = await res.json();
-    // 取 AI 回覆
     const reply = data.message?.content || "AI 沒回應";
     addMessage(reply, "ai");
+
   } catch (err) {
     console.error(err);
-    addMessage("連線失敗，請稍後再試", "ai");
+    // 這裡會將真實的錯誤原因顯示在聊天視窗中，方便除錯
+    addMessage(`❌ 發生錯誤：${err.message}`, "ai");
   }
 }
 
