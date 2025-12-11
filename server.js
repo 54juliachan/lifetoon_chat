@@ -31,7 +31,7 @@ app.post("/chat", async (req, res) => {
 
   try {
     // 使用 Gemini 1.5 Flash 模型 (速度快且成本低/免費額度高)
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
     // 發送訊息給模型
     const result = await model.generateContent(userMessage);
