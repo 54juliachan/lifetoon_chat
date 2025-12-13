@@ -68,7 +68,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
 # 呼叫 Gemini
     try:
         # 使用最新的 Flash 模型
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-2.5-flash")
         response = model.generate_content(request.message)
         return {"message": {"content": response.text}}
         
