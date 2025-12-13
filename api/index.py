@@ -7,13 +7,13 @@ import google.generativeai as genai
 import firebase_admin
 from firebase_admin import credentials, auth
 
-# 初始化 FastAPI，設定文件路徑
+# 設定 docs_url 以便在 /api/docs 查看文件
 app = FastAPI(docs_url="/api/docs", openapi_url="/api/openapi.json")
 
-# --- CORS 設定 (重要：讓前端可以跨域呼叫) ---
+# --- CORS 設定 ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 生產環境建議改成你的 Vercel 網域
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -38,7 +38,7 @@ class ChatRequest(BaseModel):
     message: str
 
 # --- 核心聊天功能 ---
-# 這裡明確指定路徑為 /api/chat，與前端 fetch 對應
+# 因為 vercel.json 現在只轉發 /api/...，所以這裡的路徑設定要包含 /api
 @app.post("/api/chat")
 async def chat(request: ChatRequest, authorization: str = Header(None)):
     # 1. 檢查 Token
@@ -69,7 +69,6 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
         raise HTTPException(status_code=500, detail=str(e))
 
 # --- 健康檢查路由 ---
-# 用於確認 API 是否活著，但不佔用根目錄
 @app.get("/api/health")
 async def health_check():
     return {"status": "ok", "message": "Lifetoon API is running"}
