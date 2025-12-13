@@ -2,6 +2,7 @@ import os
 import json
 from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse # 新增 HTMLResponse
 from pydantic import BaseModel
 import google.generativeai as genai
 import firebase_admin
@@ -37,8 +38,22 @@ genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 class ChatRequest(BaseModel):
     message: str
 
+# --- 🔥 新增：根目錄救援路由 ---
+# 如果 Vercel 把首頁請求丟給 Python，我們就手動回傳 index.html
+@app.get("/")
+async def read_root():
+    # 嘗試尋找 public/index.html 的位置
+    # 在 Vercel 環境中，檔案結構通常被保留
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    index_path = os.path.join(base_dir, "public", "index.html")
+
+    if os.path.exists(index_path):
+        with open(index_path, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
+    else:
+        return {"status": "error", "message": "index.html not found on server"}
+
 # --- 核心聊天功能 ---
-# 因為 vercel.json 現在只轉發 /api/...，所以這裡的路徑設定要包含 /api
 @app.post("/api/chat")
 async def chat(request: ChatRequest, authorization: str = Header(None)):
     # 1. 檢查 Token
@@ -68,7 +83,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
         print(f"Gemini API Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- 健康檢查路由 ---
+# --- 健康檢查 ---
 @app.get("/api/health")
 async def health_check():
     return {"status": "ok", "message": "Lifetoon API is running"}
