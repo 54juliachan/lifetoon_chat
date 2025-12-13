@@ -2,13 +2,13 @@ import os
 import json
 from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse # 新增 HTMLResponse
+from fastapi.responses import RedirectResponse # 改用 RedirectResponse
 from pydantic import BaseModel
 import google.generativeai as genai
 import firebase_admin
 from firebase_admin import credentials, auth
 
-# 設定 docs_url 以便在 /api/docs 查看文件
+# 設定 docs_url
 app = FastAPI(docs_url="/api/docs", openapi_url="/api/openapi.json")
 
 # --- CORS 設定 ---
@@ -38,20 +38,12 @@ genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 class ChatRequest(BaseModel):
     message: str
 
-# --- 🔥 新增：根目錄救援路由 ---
-# 如果 Vercel 把首頁請求丟給 Python，我們就手動回傳 index.html
+# --- 🔥 修改：根目錄救援路由 ---
+# 不再嘗試讀取檔案，而是直接轉址給靜態網頁
+# 這樣就把「顯示網頁」的工作交回給 Vercel 的 CDN，避開了 Python 找不到檔案的問題
 @app.get("/")
 async def read_root():
-    # 嘗試尋找 public/index.html 的位置
-    # 在 Vercel 環境中，檔案結構通常被保留
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    index_path = os.path.join(base_dir, "public", "index.html")
-
-    if os.path.exists(index_path):
-        with open(index_path, "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read())
-    else:
-        return {"status": "error", "message": "index.html not found on server"}
+    return RedirectResponse(url="/index.html")
 
 # --- 核心聊天功能 ---
 @app.post("/api/chat")
