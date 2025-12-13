@@ -65,14 +65,25 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
         print(f"Token verification failed: {e}")
         raise HTTPException(status_code=401, detail=f"Invalid authentication token: {str(e)}")
 
-    # 3. 呼叫 Gemini API
+# 呼叫 Gemini
     try:
+        # 使用最新的 Flash 模型
         model = genai.GenerativeModel("gemini-1.5-flash")
         response = model.generate_content(request.message)
         return {"message": {"content": response.text}}
         
     except Exception as e:
         print(f"Gemini API Error: {e}")
+        # 如果是 404 模型找不到，嘗試使用舊版穩定的 gemini-pro 作為備援
+        if "404" in str(e) or "not found" in str(e).lower():
+            try:
+                print("Fallback to gemini-pro")
+                fallback_model = genai.GenerativeModel("gemini-pro")
+                response = fallback_model.generate_content(request.message)
+                return {"message": {"content": response.text + "\n(備用模型回應)"}}
+            except Exception as e2:
+                raise HTTPException(status_code=500, detail=f"Model Error: {str(e2)}")
+        
         raise HTTPException(status_code=500, detail=str(e))
 
 # --- 健康檢查 ---
