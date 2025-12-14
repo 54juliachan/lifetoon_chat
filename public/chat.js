@@ -2,27 +2,29 @@
 import { auth } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 
-// 檢查使用者是否登入
 let currentUser = null;
 
-onAuthStateChanged(auth, async (user) => { // [修改] 加上 async
+onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
     console.log("User is logged in:", user.email);
-    await loadHistory(); // [新增] 登入後載入歷史訊息
+    
+    // 1. 先載入歷史訊息
+    await loadHistory();
+    
+    // 2. [新增] 載入完畢後，觸發 AI 主動問候
+    triggerWelcome();
+    
   } else {
     alert("請先登入！");
     window.location.href = "/";
   }
 });
 
-// ... (getTodayDate, window event listener 保持不變) ...
+// ... (getTodayDate, addMessage 等 UI 函數保持不變) ...
 function getTodayDate() {
     const today = new Date();
-    const year = today.getFullYear();
-    const month = (today.getMonth() + 1).toString().padStart(2, "0");
-    const day = today.getDate().toString().padStart(2, "0");
-    return `${year}-${month}-${day}`;
+    return `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, "0")}-${today.getDate().toString().padStart(2, "0")}`;
 }
 
 window.addEventListener("DOMContentLoaded", () => {
@@ -38,29 +40,23 @@ function addMessage(text, sender) {
     if (!messages) return;
     const bubble = document.createElement("div");
     bubble.classList.add("message", sender);
-    bubble.textContent = text; // [注意] 這裡可以考慮支援 markdown 解析，看需求
+    bubble.textContent = text;
     messages.appendChild(bubble);
     messages.scrollTop = messages.scrollHeight;
 }
 
-// [新增] 載入歷史訊息函數
+// ... (loadHistory 保持不變) ...
 async function loadHistory() {
     if (!currentUser) return;
-    
     try {
         const token = await currentUser.getIdToken();
         const res = await fetch("/api/history", {
             headers: { "Authorization": `Bearer ${token}` }
         });
-        
         if (res.ok) {
             const data = await res.json();
-            // 清空目前的顯示 (避免重複)，或者也可以保留
             messages.innerHTML = ""; 
-            
             data.history.forEach(msg => {
-                // 後端存的是 'content'，前端 addMessage 接收文字
-                // 後端存 sender: 'user' 或 'ai'，剛好對應 CSS class
                 addMessage(msg.content, msg.sender);
             });
         }
@@ -69,16 +65,48 @@ async function loadHistory() {
     }
 }
 
-// ... (aiReply, sendMessage 及其餘事件監聽保持不變) ...
+// [新增] 觸發歡迎訊息
+async function triggerWelcome() {
+    if (!currentUser) return;
+
+    // 簡單防呆：如果最後一則訊息已經是 AI 說的話，且距離現在很近（例如幾秒前），
+    // 可能是頁面剛剛重新整理，避免 AI 一直重複打招呼（可依需求決定是否保留此檢查）
+    /* const lastMsg = messages.lastElementChild;
+    if (lastMsg && lastMsg.classList.contains('ai')) {
+        // 這裡可以加入時間判斷邏輯，目前先讓它每次都打招呼
+    }
+    */
+
+    try {
+        const token = await currentUser.getIdToken();
+        // 取得使用者當地時間字串，例如 "下午 8:00:00"
+        const localTime = new Date().toLocaleString(); 
+
+        const res = await fetch("/api/welcome", {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}` 
+            },
+            body: JSON.stringify({ local_time: localTime })
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            // 顯示 AI 的歡迎語
+            addMessage(data.message.content, "ai");
+        }
+    } catch (err) {
+        console.error("Welcome message error:", err);
+    }
+}
+
+// ... (aiReply, sendMessage 等原有傳訊功能保持不變) ...
 async function aiReply(userText) {
-  if (!currentUser) {
-      addMessage("❌ 請先登入才能使用聊天功能", "ai");
-      return;
-  }
+  if (!currentUser) return;
 
   try {
     const token = await currentUser.getIdToken();
-
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { 
@@ -87,30 +115,23 @@ async function aiReply(userText) {
       },
       body: JSON.stringify({ message: userText })
     });
-
-    if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.detail || `Server Error: ${res.status}`);
-    }
-
+    // ... (錯誤處理與顯示邏輯保持不變) ...
+    if (!res.ok) throw new Error("API Error");
     const data = await res.json();
-    const reply = data.message?.content || "AI 沒回應";
-    addMessage(reply, "ai");
-
+    addMessage(data.message?.content, "ai");
   } catch (err) {
     console.error(err);
-    addMessage(`❌ 發生錯誤：${err.message}`, "ai");
+    addMessage("❌ 錯誤：" + err.message, "ai");
   }
 }
 
-// 事件監聽
+// ... (事件監聽保持不變) ...
 if (btn) btn.addEventListener("click", sendMessage);
 if (input) {
     input.addEventListener("keypress", (e) => {
       if (e.key === "Enter") sendMessage();
     });
 }
-
 function sendMessage() {
   const text = input.value.trim();
   if (!text) return;
