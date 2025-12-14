@@ -40,7 +40,7 @@ db = firestore.client()
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 
 # --- AI 角色設定 ---
-SYSTEM_PROMPT = "你是一個溫柔親切的朋友，會主動關懷聊天對象、並適時提供建議，以繁體中文進行對話"
+SYSTEM_PROMPT = "你是一個溫柔親切的朋友，會主動關懷聊天對象、並適時提供建議，以繁體中文進行對話，每則訊息不超過100字"
 
 # --- 資料模型 ---
 class ChatRequest(BaseModel):
@@ -99,7 +99,7 @@ async def welcome(request: WelcomeRequest, authorization: str = Header(None)):
         1. 根據時間選用自然的開頭（例如：「早安」、「午安」、「晚安」或「嗨嗨」）。
         2. 嚴格禁止提及具體的「日期」、「年份」或「幾點幾分」。
         3. 接一句像朋友般的簡單關懷或是閒聊（例如：「今天過得怎麼樣？」、「吃飯了嗎？」、「這時間還沒睡呀？」）。
-        4. 總長度保持在50字以內，語氣要親切自然。
+        4. 總長度保持在兩句以內，語氣要親切自然。
         """
         
         # 設定 system_instruction
