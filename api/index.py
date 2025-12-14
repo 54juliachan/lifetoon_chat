@@ -1,7 +1,7 @@
 import os
 import json
 import time
-from fastapi import FastAPI, HTTPException, Header, Request
+from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
@@ -9,9 +9,10 @@ import google.generativeai as genai
 import firebase_admin
 from firebase_admin import credentials, auth, firestore
 
-# ... (初始化 Firebase 與 FastAPI 保持不變) ...
+# 設定 docs_url
 app = FastAPI(docs_url="/api/docs", openapi_url="/api/openapi.json")
 
+# --- CORS 設定 ---
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,6 +21,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- 初始化 Firebase ---
 if not firebase_admin._apps:
     service_account_info = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON")
     if service_account_info:
@@ -31,45 +33,53 @@ if not firebase_admin._apps:
     else:
         print("Warning: FIREBASE_SERVICE_ACCOUNT_JSON not set.")
 
+# 初始化 Firestore
 db = firestore.client()
+
+# --- 初始化 Gemini ---
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 
-# --- [新增] 定義 AI 角色設定 ---
+# --- AI 角色設定 ---
 SYSTEM_PROMPT = "你是一個溫柔親切的朋友，會主動關懷聊天對象、並適時提供建議，以繁體中文進行對話"
 
+# --- 資料模型 ---
 class ChatRequest(BaseModel):
     message: str
 
-# [新增] 歡迎請求的資料結構 (接收前端傳來的時間)
 class WelcomeRequest(BaseModel):
     local_time: str
 
+# --- 根目錄救援路由 ---
 @app.get("/")
 async def read_root():
     return RedirectResponse(url="/index.html")
 
-# ... (get_history API 保持不變) ...
+# --- 取得歷史紀錄 API ---
 @app.get("/api/history")
 async def get_history(authorization: str = Header(None)):
-    # (原有程式碼保持不變...)
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing token")
     token = authorization.split("Bearer ")[1]
+    
     try:
         decoded_token = auth.verify_id_token(token)
         uid = decoded_token['uid']
+        
+        # 從 Firestore 撈取該用戶的歷史訊息，按時間排序
         msgs_ref = db.collection('users').document(uid).collection('messages')
         docs = msgs_ref.order_by('timestamp').stream()
+        
         history = []
         for doc in docs:
             history.append(doc.to_dict())
+            
         return {"history": history}
+        
     except Exception as e:
         print(f"History Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
-# --- [新增] 主動歡迎 API ---
+# --- 主動歡迎 API (不報時版本) ---
 @app.post("/api/welcome")
 async def welcome(request: WelcomeRequest, authorization: str = Header(None)):
     if not authorization or not authorization.startswith("Bearer "):
@@ -80,16 +90,24 @@ async def welcome(request: WelcomeRequest, authorization: str = Header(None)):
         decoded_token = auth.verify_id_token(token)
         uid = decoded_token['uid']
         
-        # 準備 Prompt，告訴 AI 現在時間，請它打招呼
-        # 這裡不讀取全部歷史，只給簡單指令，避免歡迎語太長或離題
-        prompt = f"使用者剛登入，現在他的時間是 {request.local_time}。請用一句話熱情且自然地向他打招呼（例如問候這時間點過得如何），不要重複之前的對話。"
+        # Prompt 指令：給予時間作為判斷依據，但禁止直接報時
+        prompt = f"""
+        使用者剛登入，現在他的當地時間是 {request.local_time}。
+        請依照時間給予溫暖的問候。
         
-        # [關鍵] 設定 system_instruction
+        【指令要求】：
+        1. 根據時間選用自然的開頭（例如：「早安」、「午安」、「晚安」或「嗨嗨」）。
+        2. 嚴格禁止提及具體的「日期」、「年份」或「幾點幾分」。
+        3. 接一句像朋友般的簡單關懷或是閒聊（例如：「今天過得怎麼樣？」、「吃飯了嗎？」、「這時間還沒睡呀？」）。
+        4. 總長度保持在兩句話以內，語氣要親切自然。
+        """
+        
+        # 設定 system_instruction
         model = genai.GenerativeModel("gemini-2.5-flash", system_instruction=SYSTEM_PROMPT)
         response = model.generate_content(prompt)
         welcome_msg = response.text
 
-        # 存入資料庫 (只存 AI 的回應，不存 Prompt)
+        # 存入資料庫 (只存 AI 的回應)
         msgs_ref = db.collection('users').document(uid).collection('messages')
         ai_doc = msgs_ref.document()
         batch = db.batch()
@@ -107,61 +125,95 @@ async def welcome(request: WelcomeRequest, authorization: str = Header(None)):
         print(f"Welcome Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
-# --- [修改] 核心聊天 API ---
+# --- 核心聊天功能 (具備記憶) ---
 @app.post("/api/chat")
 async def chat(request: ChatRequest, authorization: str = Header(None)):
-    # ... (Token 驗證部分保持不變) ...
+    # 1. 檢查 Token
     if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing authorization header")
+        raise HTTPException(status_code=401, detail="Missing or invalid authorization header")
+
     token = authorization.split("Bearer ")[1]
     uid = ""
+
     try:
+        # 2. 驗證 Firebase Token
         if firebase_admin._apps:
             decoded_token = auth.verify_id_token(token)
             uid = decoded_token['uid']
         else:
+            # 僅供本地測試 fallback
+            print("Skipping auth verification (Firebase not init)")
             uid = "test_user"
+        
     except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+        print(f"Token verification failed: {e}")
+        raise HTTPException(status_code=401, detail=f"Invalid authentication token: {str(e)}")
 
-    # 準備歷史紀錄
+    # 3. 準備 Gemini 的歷史上下文
     gemini_history = []
+    msgs_ref = db.collection('users').document(uid).collection('messages')
+
     try:
-        msgs_ref = db.collection('users').document(uid).collection('messages')
+        # 撈取最近 20 筆對話作為 Context
         recent_docs = msgs_ref.order_by('timestamp', direction=firestore.Query.DESCENDING).limit(20).stream()
+        # 轉回正序
         history_data = sorted([d.to_dict() for d in recent_docs], key=lambda x: x['timestamp'])
         
         for msg in history_data:
             role = "user" if msg['sender'] == "user" else "model"
             gemini_history.append({"role": role, "parts": [msg['content']]})
-    except Exception:
-        pass
+            
+    except Exception as e:
+        print(f"Firestore read error: {e}")
+        # 若讀取失敗，就當作沒歷史，繼續執行
 
+    # 4. 呼叫 Gemini
     try:
-        # [修改] 加上 system_instruction
         model = genai.GenerativeModel("gemini-2.5-flash", system_instruction=SYSTEM_PROMPT)
+        
+        # 帶入歷史紀錄
         chat_session = model.start_chat(history=gemini_history)
         response = chat_session.send_message(request.message)
         ai_reply_text = response.text
         
-        # 儲存對話 (保持不變)
+        # 5. 將這次的對話存入 Firestore
         batch = db.batch()
         user_doc = msgs_ref.document()
         ai_doc = msgs_ref.document()
+        
         timestamp = time.time()
         
-        batch.set(user_doc, {"content": request.message, "sender": "user", "timestamp": timestamp})
-        batch.set(ai_doc, {"content": ai_reply_text, "sender": "ai", "timestamp": timestamp + 0.1})
+        batch.set(user_doc, {
+            "content": request.message,
+            "sender": "user",
+            "timestamp": timestamp
+        })
+        
+        batch.set(ai_doc, {
+            "content": ai_reply_text,
+            "sender": "ai",
+            "timestamp": timestamp + 0.1 # 確保 AI 回應排在 User 之後
+        })
+        
         batch.commit()
 
         return {"message": {"content": ai_reply_text}}
         
     except Exception as e:
-        # ... (錯誤處理保持不變) ...
-        print(f"Error: {e}")
+        print(f"Gemini API Error: {e}")
+        # 備援機制
+        if "404" in str(e) or "not found" in str(e).lower():
+            try:
+                print("Fallback to gemini-pro")
+                fallback_model = genai.GenerativeModel("gemini-pro")
+                response = fallback_model.generate_content(request.message)
+                return {"message": {"content": response.text + "\n(備用模型回應)"}}
+            except Exception as e2:
+                raise HTTPException(status_code=500, detail=f"Model Error: {str(e2)}")
+        
         raise HTTPException(status_code=500, detail=str(e))
 
+# --- 健康檢查 ---
 @app.get("/api/health")
 async def health_check():
-    return {"status": "ok"}
+    return {"status": "ok", "message": "Lifetoon API is running"}
