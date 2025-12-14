@@ -1,22 +1,22 @@
 // public/chat.js
-import { auth } from "./firebase-config.js"; // 匯入共用的 auth
+import { auth } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 
 // 檢查使用者是否登入
 let currentUser = null;
 
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => { // [修改] 加上 async
   if (user) {
     currentUser = user;
     console.log("User is logged in:", user.email);
+    await loadHistory(); // [新增] 登入後載入歷史訊息
   } else {
-    // 如果沒登入，強制導回首頁
     alert("請先登入！");
     window.location.href = "/";
   }
 });
 
-// ... (保留原本的 getTodayDate, addMessage 等 UI 函數) ...
+// ... (getTodayDate, window event listener 保持不變) ...
 function getTodayDate() {
     const today = new Date();
     const year = today.getFullYear();
@@ -38,12 +38,38 @@ function addMessage(text, sender) {
     if (!messages) return;
     const bubble = document.createElement("div");
     bubble.classList.add("message", sender);
-    bubble.textContent = text;
+    bubble.textContent = text; // [注意] 這裡可以考慮支援 markdown 解析，看需求
     messages.appendChild(bubble);
     messages.scrollTop = messages.scrollHeight;
 }
 
-// 核心修改：發送訊息時帶上 Token
+// [新增] 載入歷史訊息函數
+async function loadHistory() {
+    if (!currentUser) return;
+    
+    try {
+        const token = await currentUser.getIdToken();
+        const res = await fetch("/api/history", {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        
+        if (res.ok) {
+            const data = await res.json();
+            // 清空目前的顯示 (避免重複)，或者也可以保留
+            messages.innerHTML = ""; 
+            
+            data.history.forEach(msg => {
+                // 後端存的是 'content'，前端 addMessage 接收文字
+                // 後端存 sender: 'user' 或 'ai'，剛好對應 CSS class
+                addMessage(msg.content, msg.sender);
+            });
+        }
+    } catch (err) {
+        console.error("Failed to load history:", err);
+    }
+}
+
+// ... (aiReply, sendMessage 及其餘事件監聽保持不變) ...
 async function aiReply(userText) {
   if (!currentUser) {
       addMessage("❌ 請先登入才能使用聊天功能", "ai");
@@ -51,15 +77,13 @@ async function aiReply(userText) {
   }
 
   try {
-    // 1. 取得使用者的 ID Token (如果過期會自動刷新)
     const token = await currentUser.getIdToken();
 
-    // 2. 發送請求到新的 FastAPI 接口
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}` // 帶上 Token
+          "Authorization": `Bearer ${token}`
       },
       body: JSON.stringify({ message: userText })
     });
