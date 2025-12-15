@@ -71,11 +71,10 @@ async function triggerWelcome() {
 
     // 簡單防呆：如果最後一則訊息已經是 AI 說的話，且距離現在很近（例如幾秒前），
     // 可能是頁面剛剛重新整理，避免 AI 一直重複打招呼（可依需求決定是否保留此檢查）
-    /* const lastMsg = messages.lastElementChild;
+    const lastMsg = messages.lastElementChild;
     if (lastMsg && lastMsg.classList.contains('ai')) {
         // 這裡可以加入時間判斷邏輯，目前先讓它每次都打招呼
     }
-    */
 
     try {
         const token = await currentUser.getIdToken();
