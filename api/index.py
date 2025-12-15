@@ -153,7 +153,6 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
     gemini_history = []
     msgs_ref = db.collection('users').document(uid).collection('messages')
 
-    # ... (前略)
     try:
         # 撈取最近 20 筆對話作為 Context
         recent_docs = msgs_ref.order_by('timestamp', direction=firestore.Query.DESCENDING).limit(20).stream()
@@ -163,23 +162,17 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
         for msg in history_data:
             role = "user" if msg['sender'] == "user" else "model"
             gemini_history.append({"role": role, "parts": [msg['content']]})
-        
-        # --- [修正程式碼開始] ---
-        # 修正 1: 確保歷史紀錄不為空時，必須以 user 開頭
-        if gemini_history and gemini_history[0]['role'] == 'model':
-            # 方法 A: 插入一個隱藏的 User 開場白 (建議)
+
+        # ================= [新增修正程式碼開始] =================
+        # 修正：Gemini API 規定 history 必須以 user 開頭
+        # 如果第一則訊息是 model (例如歡迎詞)，則在前面插入一個假的 user 訊息
+        if gemini_history and gemini_history[0]["role"] == "model":
             gemini_history.insert(0, {
                 "role": "user", 
-                "parts": ["(使用者進入聊天室)"] 
+                "parts": ["(系統自動插入：使用者加入對話)"] 
             })
-            # 方法 B: 或者直接移除第一則 Model 訊息 (如果不重要)
-            # gemini_history.pop(0)
-
-        # 修正 2: 合併連續的相同角色訊息 (Gemini 也禁止連續 user 或連續 model)
-        # 簡單實作：若發現連續，則略過或合併。這裡示範若連續出現則只取最後一則的簡易處理，
-        # 嚴謹作法應該要合併 parts。但解決「開頭為 model」通常就能解決新用戶問題。
-        # --- [修正程式碼結束] ---
-
+        # ================= [新增修正程式碼結束] =================
+            
     except Exception as e:
         print(f"Firestore read error: {e}")
         # 若讀取失敗，就當作沒歷史，繼續執行
