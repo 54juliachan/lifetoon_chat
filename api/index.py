@@ -79,6 +79,45 @@ async def get_history(authorization: str = Header(None)):
         print(f"History Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# --- [新增] 歷史紀錄清洗函式 ---
+def sanitize_history(history):
+    """
+    確保歷史紀錄符合 Gemini API 規範：
+    1. 必須以 'user' 開頭。
+    2. 角色必須嚴格交替 (user -> model -> user -> model)。
+    3. 傳給 start_chat 的歷史紀錄，最後一則必須是 'model' (因為接下來要發送的是 user 訊息)。
+    """
+    if not history:
+        return []
+    
+    sanitized = []
+    
+    # 1. 處理第一則訊息：如果是 model，前面補一個 user
+    if history[0]['role'] == 'model':
+        sanitized.append({'role': 'user', 'parts': ["(系統自動插入：使用者加入對話)"]})
+    
+    # 2. 處理連續角色與合併
+    for msg in history:
+        if not sanitized:
+            sanitized.append(msg)
+            continue
+            
+        last_msg = sanitized[-1]
+        
+        # 如果當前訊息角色與上一則相同，則合併內容 (避免連續相同角色)
+        if msg['role'] == last_msg['role']:
+            last_msg['parts'].extend(msg['parts'])
+        else:
+            sanitized.append(msg)
+            
+    # 3. 處理最後一則訊息：如果是 user，必須移除
+    # 因為 start_chat 後我們會呼叫 send_message (user)，如果歷史結尾是 user，會變成 user->user 導致錯誤
+    if sanitized and sanitized[-1]['role'] == 'user':
+        # 移除最後一則沒有 AI 回應的 User 訊息，避免衝突
+        sanitized.pop()
+        
+    return sanitized
+
 # --- 主動歡迎 API (不報時版本) ---
 @app.post("/api/welcome")
 async def welcome(request: WelcomeRequest, authorization: str = Header(None)):
