@@ -3,20 +3,31 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/fi
 
 let currentUser = null;
 
+// public/chat.js (部分截取)
+
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
-    console.log("User is logged in:", user.email);
     
-    // 1. 先載入歷史訊息
+    // 1. 載入歷史訊息
     await loadHistory();
     
-    // 2. 載入完畢後，觸發 AI 主動問候
+    // 2. 觸發 AI 歡迎語
     triggerWelcome();
+
+    // --- [新增：處理來自 home.html 的訊息] ---
+    const pendingMessage = localStorage.getItem("pendingMessage");
+    if (pendingMessage) {
+      // 立即移除暫存，避免重新整理頁面時重複發送
+      localStorage.removeItem("pendingMessage");
+      
+      // 顯示在畫面上並傳送給 AI
+      addMessage(pendingMessage, "user");
+      aiReply(pendingMessage);
+    }
+    // ------------------------------------
     
   } else {
-    // 未登入則導回首頁
-    // alert("請先登入！"); // 可視需求決定是否要跳窗
     window.location.href = "/";
   }
 });
