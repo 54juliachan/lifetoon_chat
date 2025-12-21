@@ -42,34 +42,22 @@ genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 # --- RAG 檔案處理邏輯 ---
 def load_and_process_rag_data(file_name="my_data.txt"):
     """讀取 .txt 檔案並切分為小區塊"""
-    # 修正路徑處理，確保在不同環境下都能讀到 api 資料夾內的檔案
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.join(current_dir, file_name)
-    
+    file_path = os.path.join(os.path.dirname(__file__), file_name)
     if not os.path.exists(file_path):
-        print(f"Warning: {file_path} not found. RAG disabled.")
+        print(f"Warning: {file_name} not found. RAG disabled.")
         return []
     
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            text = f.read()
-        
-        # 增加 log 確認讀取到內容
-        print(f"成功讀取檔案: {file_name}, 長度: {len(text)} 字")
-        
-        # 每 500 字切一塊，重疊 50 字保持上下文連貫
-        splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-        chunks = splitter.split_text(text)
-        print(f"檔案切分完成，共 {len(chunks)} 個區塊")
-        return chunks
-    except Exception as e:
-        print(f"File Loading Error: {e}")
-        return []
+    with open(file_path, 'r', encoding='utf-8') as f:
+        text = f.read()
+    
+    # 每 500 字切一塊，重疊 50 字保持上下文連貫
+    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+    return splitter.split_text(text)
 
 # 在啟動時載入資料
 CHUNKS = load_and_process_rag_data("my_data.txt")
 
-def get_relevant_context(user_query, chunks, top_k=2):
+def get_relevant_context(user_query, chunks, top_k=3):
     """檢索與問題最相關的文字片段"""
     if not chunks:
         return ""
@@ -82,24 +70,19 @@ def get_relevant_context(user_query, chunks, top_k=2):
             task_type="retrieval_query"
         )["embedding"]
 
-        # 2. 將所有區塊向量化 (修正點：處理列表格式)
-        embedding_response = genai.embed_content(
+        # 2. 將所有區塊向量化 (建議：若檔案不常變動，可改為預計算以提升效能)
+        chunk_embeddings = genai.embed_content(
             model="models/text-embedding-004",
             content=chunks,
             task_type="retrieval_document"
-        )
-        chunk_embeddings = embedding_response["embeddings"]
+        )["embeddings"]
 
         # 3. 計算相似度 (內積)
         scores = np.dot(chunk_embeddings, query_embedding)
-        # 取得最相關的索引
         top_indices = np.argsort(scores)[-top_k:][::-1]
         
-        relevant_text = "\n\n".join([chunks[i] for i in top_indices])
-        print(f"RAG 檢索成功，找到相關片段長度: {len(relevant_text)}")
-        return relevant_text
+        return "\n\n".join([chunks[i] for i in top_indices])
     except Exception as e:
-        # 這裡會印出具體的 Embedding 錯誤到 Log
         print(f"RAG Retrieval Error: {e}")
         return ""
 
@@ -119,6 +102,48 @@ class WelcomeRequest(BaseModel):
 async def read_root():
     return RedirectResponse(url="/index.html")
 
+@app.get("/api/history")
+async def get_history(authorization: str = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing token")
+    token = authorization.split("Bearer ")[1]
+    
+    try:
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token['uid']
+        msgs_ref = db.collection('users').document(uid).collection('messages')
+        docs = msgs_ref.order_by('timestamp').stream()
+        return {"history": [doc.to_dict() for doc in docs]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/welcome")
+async def welcome(request: WelcomeRequest, authorization: str = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing token")
+    
+    token = authorization.split("Bearer ")[1]
+    try:
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token['uid']
+        
+        prompt = f"使用者剛登入，當地時間是 {request.local_time}。請給予自然的問候。禁止提具體日期時間，總長兩句內。"
+        
+        model = genai.GenerativeModel("gemini-2.5-flash", system_instruction=BASE_SYSTEM_PROMPT)
+        response = model.generate_content(prompt)
+        welcome_msg = response.text
+
+        msgs_ref = db.collection('users').document(uid).collection('messages')
+        msgs_ref.add({
+            "content": welcome_msg,
+            "sender": "ai",
+            "timestamp": time.time()
+        })
+
+        return {"message": {"content": welcome_msg}}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/chat")
 async def chat(request: ChatRequest, authorization: str = Header(None)):
     if not authorization or not authorization.startswith("Bearer "):
@@ -129,18 +154,15 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
         decoded_token = auth.verify_id_token(token)
         uid = decoded_token['uid']
     except Exception:
-        uid = "test_user"
+        uid = "test_user" # Fallback
 
     # 1. 檢索 RAG 背景知識
     context = get_relevant_context(request.message, CHUNKS)
     
-    # 2. 動態生成系統指令 (增強引導 AI 使用背景資料)
+    # 2. 動態生成系統指令
     dynamic_system_prompt = BASE_SYSTEM_PROMPT
     if context:
-        dynamic_system_prompt += (
-            f"\n\n【重要背景資料】：\n---\n{context}\n---\n"
-            "如果使用者的問題與上方資料相關，請務必參考該資料回答。"
-        )
+        dynamic_system_prompt += f"\n\n以下是關於使用者的背景資料（若有相關請參考）：\n---\n{context}\n---"
 
     # 3. 準備歷史紀錄
     gemini_history = []
@@ -152,10 +174,11 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
         role = "user" if msg['sender'] == "user" else "model"
         gemini_history.append({"role": role, "parts": [msg['content']]})
 
+    # 修正歷史開頭角色限制
     if gemini_history and gemini_history[0]["role"] == "model":
         gemini_history.insert(0, {"role": "user", "parts": ["你好"]})
 
-    # 4. 呼叫 Gemini 2.5 Flash
+    # 4. 呼叫 Gemini
     try:
         model = genai.GenerativeModel("gemini-2.5-flash", system_instruction=dynamic_system_prompt)
         chat_session = model.start_chat(history=gemini_history)
@@ -171,9 +194,8 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
 
         return {"message": {"content": ai_reply_text}}
     except Exception as e:
-        print(f"Gemini API Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/health")
 async def health_check():
-    return {"status": "ok", "rag_chunks": len(CHUNKS)}
+    return {"status": "ok"}
