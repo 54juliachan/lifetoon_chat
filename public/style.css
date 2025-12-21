@@ -24,6 +24,15 @@ html,body {
   -moz-osx-font-smoothing:grayscale;
 }
 
+.bgimg{
+  /* 背景圖 */
+  background-image: url("img/background.jpg");
+  background-size: cover;       /* 填滿容器，保持比例，裁切多餘部分 */
+  background-position: center;  /* 置中背景 */
+  background-repeat: no-repeat; /* 不平鋪 */
+}
+
+
 /* 聊天室主容器 */
 .chat-container {
   display: flex;
@@ -36,6 +45,12 @@ html,body {
   border-left: 1px solid #e6e6e6;
   border-right: 1px solid #e6e6e6;
   box-shadow: 0 0 0 rgba(0,0,0,0);
+
+  /* 背景圖 */
+  background-image: url("img/background.jpg");
+  background-size: cover;       /* 填滿容器，保持比例，裁切多餘部分 */
+  background-position: center;  /* 置中背景 */
+  background-repeat: no-repeat; /* 不平鋪 */
 }
 
 /* 標題 */
@@ -91,7 +106,7 @@ html,body {
   padding: 10px 14px;
   border-radius: var(--radius);
   line-height: 1.45;
-  font-size: 15px;
+  font-size: 14px;
   word-break: break-word;       /* 避免超長的單字穿透 */
   overflow-wrap: anywhere;      /* 更強的換行容錯 */
   white-space: pre-wrap;        /* 保留使用者換行，同時允許折行 */
@@ -179,7 +194,7 @@ html,body {
 
 /* 滾動條美化（僅在支援的瀏覽器） */
 .chat-messages::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 .chat-messages::-webkit-scrollbar-thumb {
   background: rgba(0,0,0,0.08);
@@ -192,6 +207,11 @@ html,body {
   .chat-header { font-size: 16px; padding: 10px; }
   .chat-input-area { padding: 8px; gap: 6px; }
   .chat-input-area button { width: 40px; height: 40px; }
+  .card-container {
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+  }
 }
 
 /* 桌面時置中並留白（可保留或刪除） */
@@ -203,21 +223,17 @@ html,body {
     justify-content: center;
   }
   .chat-container {
-    height: 88vh;
     border-radius: 12px;
     overflow: hidden;
+  }
+  .card-container {
+    width: 420px;
+    border-radius: 12px;
+    overflow-y: auto;
   }
 }
 
 /*以下設定登入頁*/
-
-.indexbody{
-  /* 背景圖 */
-  background-image: url("img/background.jpg");
-  background-size: cover;       /* 填滿容器，保持比例，裁切多餘部分 */
-  background-position: center;  /* 置中背景 */
-  background-repeat: no-repeat; /* 不平鋪 */
-}
 
 .container {
   text-align: center;
@@ -236,7 +252,7 @@ html,body {
   margin-bottom: 32px;
 }
 
-.button-group {
+.button-group01 {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -294,3 +310,305 @@ html,body {
   border-color: #4C7DF0;
   box-shadow: 0 0 0 2px rgba(76, 125, 240, 0.2);
 }
+
+/*以下設定小卡頁*/
+
+/* --- 頂部時間區 --- */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            color: white;
+            font-weight: 600;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+
+        }
+
+        /* --- 主要摘要小卡 --- */
+        .main-card {
+            background: rgba(255, 255, 255, 0.6);
+            padding: 12px 24px;
+            margin: 0px 10px;
+            position: relative;
+            flex-shrink: 0; /* 防止被擠壓 */
+            border: 2px solid black;
+        }
+
+        .title-text {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 0.1rem;
+        }
+
+        .content-text {
+            font-size: 14px;
+            color: #222;
+            margin-bottom: 0.1rem;
+        }
+
+        /* 修改按鈕 */
+        .edit-btn {
+            position: absolute;
+            right: 15px;
+            bottom: 15px;
+            font-size: 0.9rem;
+            color: #444;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* --- 下方按鈕區 --- */
+        .button-group02 {
+            margin: 10px;
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .square-btn {
+            background: rgba(255, 255, 255, 0.6);
+            height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 2px solid black;
+        }
+
+        .icon-img {
+            width: 32px; /* 設定圖片寬度，大約等於原本 emoji 的大小 */
+            height: auto; /* 高度自動維持比例 */
+            margin-bottom: 8px; /* 圖片跟文字的距離 */
+            display: block;
+        }
+
+        /* --- 底部上傳按鈕 --- */
+        .upload-btn {
+            background: #000;
+            color: #fff;
+            padding: 8px;
+            border-radius: 50px;
+            text-align: center;
+            font-weight: 500;
+            margin: 10px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        /* 按下去的特效 */
+        .square-btn:active, .upload-btn:active {
+            transform: scale(0.96);
+            opacity: 0.8;
+        }
+
+        /* =========================
+   home首頁
+========================= */
+
+.index-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.logo {
+  font-weight: 700;
+  font-size: 20px;
+}
+
+.profile-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* SYSTEM裝飾 */
+.system-card {
+  background: rgba(255, 255, 255, 0.6);
+  border: 2px solid #000;
+  padding: 24px 16px;
+  margin-bottom: 28px;
+  position: relative;
+  text-align: left;
+}
+
+.system-tag {
+  position: absolute;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1.6px solid #000;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.system-title {
+  font-size: 22px;
+  margin: 0 0 16px 0;
+  line-height: 1.4;
+}
+
+.system-input {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.system-input input {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 999px;
+  border: 1.6px solid #000;
+  font-size: 15px;
+  outline: none;
+}
+
+.system-input button {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: #000;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+/* 三張卡片橫列 */
+.card-row {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;      /* 保留滑動功能 */
+  padding-bottom: 8px;
+
+  /* 隱藏滾動條 */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE 10+ */
+}
+
+.card-row::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.square-card {
+  width: 230px;
+  flex-shrink: 0;
+}
+
+.square-inner {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border: 2px solid #000;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 14px;
+  box-sizing: border-box;
+}
+
+.square-inner.center {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+}
+
+/* 卡片文字 */
+.card-title {
+  font-weight: 700;
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.card-sub {
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.card-big {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.story-text {
+  font-size: 12px;
+  color: #333;
+  text-align: center;
+}
+
+.story-img {
+  width: 80%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 10px;
+  display: block;
+}
+
+/* 任務清單 */
+.task-list {
+  padding-left: 16px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* --- 個人主頁 Header --- */
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.back-link {
+  text-decoration: none;
+  font-size: 22px;
+  color: inherit;
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* --- Avatar 區 --- */
+.profile-avatar {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.avatar-icon {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  margin: 0 auto 12px;
+}
+
+.avatar-name {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.avatar-level {
+  font-size: 14px;
+  color: #666;
+}
+
+/* --- 功能選單按鈕 --- */
+/* 你原本已有 .button-group01 與 .btn, .btn.primary, .btn.secondary 可共用 */

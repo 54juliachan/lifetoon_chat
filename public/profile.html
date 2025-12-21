@@ -3,31 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lifetoon</title>
+  <title>個人主頁</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@100..900&family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
 </head>
-<body class="indexbody bgimg">
-    
+
+<body class="bgimg indexbody">
+
   <div class="container">
-    <h1 class="title">歡迎來到 Lifetoon</h1>
-    <p class="subtitle">登入以開始聊天</p>
 
-    <!-- 登入輸入框 -->
-    <div class="input-group">
-      <input type="email" id="email" placeholder="請輸入 Email" required>
-      <input type="password" id="password" placeholder="請輸入密碼" required>
+    <!-- Header -->
+    <div class="profile-header">
+      <a href="home.html" class="back-link">←</a>
+      <div class="header-title">個人頁</div>
     </div>
 
+    <!-- Avatar -->
+    <div class="profile-avatar">
+      <div class="avatar-icon">👤</div>
+      <div class="avatar-name">主角名稱</div>
+      <div class="avatar-level">Lv.1 故事旅人</div>
+    </div>
+
+    <!-- 功能選單 -->
     <div class="button-group01">
-      <button id="loginBtn" class="btn primary">登入</button>
-      <button id="signupBtn" class="btn secondary">註冊</button>
+      <button class="btn primary">我的故事</button>
+      <button class="btn secondary">設定</button>
+      <button class="btn secondary">登出</button>
     </div>
+
   </div>
 
-  <!-- 引入 script.js，type="module" 才能使用 import -->
-  <script type="module" src="index.js"></script>
 </body>
+</html>

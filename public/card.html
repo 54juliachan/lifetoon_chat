@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Chat</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@100..900&family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+</head>
+<body class="bgimg bgcontainer">
+
+  <div class="card-container">
+        <header class="top-bar">
+            <span style="font-size: 24px; margin-right: 15px; cursor: pointer;">〈</span>
+            <span style="font-size: 18px;">8月29日(三)</span>
+        </header>
+
+        <main class="main-card">
+            <div class="diary-item">
+                <p class="title-text">你今天的心情</p>
+                <p class="content-text">愉悅</p>
+            </div>
+
+            <div class="diary-item">
+                <p class="title-text">值得紀錄的事</p>
+                <ul class="content-text">
+                    <li>開學日大掃除超級累</li>
+                    <li>操場邊的午後野餐</li>
+                </ul>
+            </div>
+
+            <div class="diary-item">
+                <p class="title-text">用一句話來描述今天</p>
+                <p class="content-text">新學校新學期新同學！</p>
+            </div>
+
+            <div class="diary-item" style="margin-bottom: 5px;">
+                <p class="title-text">給自己的一段話</p>
+                <p class="content-text">希望能快點跟新同學變熟</p>
+            </div>
+
+            <div class="edit-btn">✎ 修改</div>
+        </main>
+
+        <nav class="button-group02">
+            <div class="square-btn" onclick="clickAction('上傳圖片')">
+                <span>＋</span>
+                上傳照片
+              </div>
+            <div class="square-btn" onclick="clickAction('查看紀錄')">
+              <img class="icon-img" src="public\img\comment.png" alt="">
+              <p>聊天紀錄</p>
+            </div>
+        </nav>
+
+        <footer class="upload-btn" onclick="submitDiary()">
+            故事上傳
+        </footer>
+    </div>
+
+  <script type="module" src="chat.js"></script>
+</body>
+</html>

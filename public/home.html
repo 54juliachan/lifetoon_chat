@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Chat</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@100..900&family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+</head>
+
+<body class="bgimg indexbody">
+
+  <div class="container card-container">
+
+    <!-- Header -->
+    <header class="index-header">
+      <div class="logo">LIFETOON</div>
+      <a href="profile.html" class="profile-btn">👤</a>
+    </header>
+
+    <!-- SYSTEM 對話框 -->
+    <section class="system-card">
+      <div class="system-tag">SYSTEM</div>
+
+      <h2 class="system-title">
+        嗨主角<br>聊聊今天的劇情？
+      </h2>
+
+      <div class="system-input">
+        <input type="text" placeholder="故事發生中...">
+        <button id="sendBtn">➤</button>
+      </div>
+    </section>
+
+    <!-- 三張卡片區 -->
+    <section class="card-row">
+
+      <!-- 解鎖稱號 -->
+      <div class="square-card">
+        <div class="square-inner">
+          <div class="card-title">解鎖稱號</div>
+          <div class="card-sub">已獲得</div>
+          <div class="card-big">2 項</div>
+        </div>
+      </div>
+
+      <!-- 故事卡 -->
+      <div class="square-card center">
+        <div class="square-inner center">
+          <div class="story-text">
+            <strong>小賴的天馬行空</strong><br>
+            更新至第2話
+          </div>
+          <img src="img/story-cover.png" alt="story" class="story-img">
+        </div>
+      </div>
+
+      <!-- 今日任務 -->
+      <div class="square-card">
+        <div class="square-inner">
+          <div class="card-title">今日任務</div>
+          <div class="card-sub">執行中 5 項</div>
+          <ul class="task-list">
+            <li>完成一段對話（1/1）</li>
+            <li>解鎖新劇情（0/1）</li>
+            <li>回顧舊章節（0/1）</li>
+            <li>角色互動（1/1）</li>
+            <li>每日登入（1/1）</li>
+          </ul>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+</body>
+</html>
