@@ -12,8 +12,7 @@ onAuthStateChanged(auth, async (user) => {
     // 1. 載入歷史訊息
     await loadHistory();
     
-    // 2. 觸發 AI 歡迎語
-    triggerWelcome();
+    // 2. 觸發 AI 歡迎語triggerWelcome();
 
     // --- [新增：處理來自 home.html 的訊息] ---
     const pendingMessage = localStorage.getItem("pendingMessage");
