@@ -15,18 +15,18 @@
   <div class="card-container">
         <header class="top-bar">
             <span style="font-size: 24px; margin-right: 15px; cursor: pointer;">〈</span>
-            <span style="font-size: 18px;">8月29日(三)</span>
+            <span id="displayDate" style="font-size: 18px;">8月29日(三)</span>
         </header>
 
         <main class="main-card">
             <div class="diary-item">
                 <p class="title-text">你今天的心情</p>
-                <p class="content-text">愉悅</p>
+                <p class="content-text" id="summaryMood">愉快</p>
             </div>
 
             <div class="diary-item">
                 <p class="title-text">值得紀錄的事</p>
-                <ul class="content-text">
+                <ul class="content-text" id="summaryEvents">
                     <li>開學日大掃除超級累</li>
                     <li>操場邊的午後野餐</li>
                 </ul>
@@ -34,12 +34,12 @@
 
             <div class="diary-item">
                 <p class="title-text">用一句話來描述今天</p>
-                <p class="content-text">新學校新學期新同學！</p>
+                <p class="content-text" id="summaryOneLiner">新學校新學期新同學！</p>
             </div>
 
             <div class="diary-item" style="margin-bottom: 5px;">
                 <p class="title-text">給自己的一段話</p>
-                <p class="content-text">希望能快點跟新同學變熟</p>
+                <p class="content-text" id="summaryMessage">希望能快點跟新同學變熟</p>
             </div>
 
             <div class="edit-btn">✎ 修改</div>
@@ -50,8 +50,8 @@
                 <span>＋</span>
                 上傳照片
               </div>
-            <div class="square-btn" onclick="clickAction('查看紀錄')">
-              <img class="icon-img" src="public\img\comment.png" alt="">
+            <div class="square-btn" onclick="window.location.href='chat.html'">
+              <img class="icon-img" src="public/img/comment.png" alt="">
               <p>聊天紀錄</p>
             </div>
         </nav>
@@ -61,6 +61,31 @@
         </footer>
     </div>
 
-  <script type="module" src="chat.js"></script>
+  <script type="module">
+    window.addEventListener("DOMContentLoaded", () => {
+        const dataStr = localStorage.getItem("card_summary");
+        if (dataStr) {
+            const data = JSON.parse(dataStr);
+            document.getElementById("summaryMood").textContent = data.mood || "未知";
+            
+            const eventsList = document.getElementById("summaryEvents");
+            eventsList.innerHTML = "";
+            if (data.events && Array.isArray(data.events)) {
+                data.events.forEach(evt => {
+                    const li = document.createElement("li");
+                    li.textContent = evt;
+                    eventsList.appendChild(li);
+                });
+            }
+            
+            document.getElementById("summaryOneLiner").textContent = data.oneLiner || "美好的一天";
+            document.getElementById("summaryMessage").textContent = data.messageToSelf || "加油！";
+            
+            // 填寫日期
+            const today = new Date();
+            document.getElementById("displayDate").textContent = `${today.getMonth()+1}月${today.getDate()}日`;
+        }
+    });
+  </script>
 </body>
 </html>
