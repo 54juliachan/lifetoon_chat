@@ -180,7 +180,7 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
 
     # 4. 呼叫 Gemini
     try:
-        model = genai.GenerativeModel("gemini-1.5-flash", system_instruction=dynamic_system_prompt)
+        model = genai.GenerativeModel("gemini-2.5-flash", system_instruction=dynamic_system_prompt)
         chat_session = model.start_chat(history=gemini_history)
         response = chat_session.send_message(request.message)
         ai_reply_text = response.text
