@@ -10,10 +10,7 @@ onAuthStateChanged(auth, async (user) => {
     // 1. 載入歷史訊息
     await loadHistory();
     
-    // 2. 觸發 AI 歡迎語
-    triggerWelcome();
-
-    // --- [新增：處理來自 home.html 的訊息] ---
+    // 2.處理來自 home.html 的訊息
     const pendingMessage = localStorage.getItem("pendingMessage");
     if (pendingMessage) {
       localStorage.removeItem("pendingMessage");
@@ -67,29 +64,6 @@ async function loadHistory() {
         }
     } catch (err) {
         console.error("Failed to load history:", err);
-    }
-}
-
-async function triggerWelcome() {
-    if (!currentUser) return;
-    try {
-        const token = await currentUser.getIdToken();
-        const localTime = new Date().toLocaleString(); 
-        const res = await fetch("/api/welcome", {
-            method: "POST",
-            headers: { 
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}` 
-            },
-            body: JSON.stringify({ local_time: localTime })
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.message && data.message.content) {
-            addMessage(data.message.content, "ai");
-        }
-    } catch (err) {
-        console.error("Welcome message system error:", err);
     }
 }
 
