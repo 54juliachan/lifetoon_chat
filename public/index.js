@@ -42,7 +42,7 @@ function handleLogin() {
     .then((userCredential) => {
       console.log("登入成功", userCredential.user);
       alert("登入成功！");
-      window.location.href = "/chat.html"; // 登入成功後導到聊天頁
+      window.location.href = "/home.html"; // 登入成功後導到聊天頁
     })
     .catch((error) => {
       console.error("登入失敗", error.code, error.message);
@@ -64,7 +64,7 @@ function handleSignup() {
     .then((userCredential) => {
       console.log("註冊成功", userCredential.user);
       alert("註冊成功！");
-      window.location.href = "/chat.html"; // 註冊成功後導到聊天頁
+      window.location.href = "/home.html"; // 註冊成功後導到聊天頁
     })
     .catch((error) => {
       console.error("註冊失敗", error.code, error.message);
