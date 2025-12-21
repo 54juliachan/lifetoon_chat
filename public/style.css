@@ -55,6 +55,11 @@ html,body {
 
 /* 標題 */
 .chat-header {
+  display: flex;
+  justify-content: center; /* 整個 header 置中 */
+  align-items: center;
+  height: 56px;
+  position: relative;
   padding: 0px;
   background: black;
   color: white;
@@ -64,6 +69,17 @@ html,body {
   top: 0;
   z-index: 5;
   box-shadow: 0 1px 0 rgba(0,0,0,0.03);
+}
+
+.finish-chat {
+  background-color: #000;   /* 黑色背景 */
+  color: #fff;              /* 白色文字 */
+  border: 1px solid #fff; /* 白色邊框 */
+  border-radius: 6px;       /* 圓角 6px */
+  padding: 6px;       /* 按鈕內距，可依需求調整 */
+  margin-left: 12px;
+  font-size: 14px;
+  cursor: pointer;
 }
 
 /* 訊息區 */
