@@ -10,7 +10,7 @@ onAuthStateChanged(auth, async (user) => {
     // 1. 載入歷史訊息
     await loadHistory();
     
-    // 2.處理來自 home.html 的訊息
+    // 2. 處理來自 home.html 的訊息
     const pendingMessage = localStorage.getItem("pendingMessage");
     if (pendingMessage) {
       localStorage.removeItem("pendingMessage");
@@ -91,12 +91,17 @@ async function aiReply(userText) {
   }
 }
 
-// --- [新增：處理結束聊天] ---
+// --- [結束聊天：分析並刪除紀錄] ---
 if (finishBtn) {
     finishBtn.addEventListener("click", async () => {
         if (!currentUser) return;
+        
+        const confirmFinish = confirm("確定要結束聊天嗎？這將會分析內容並清空目前的對話紀錄。");
+        if (!confirmFinish) return;
+
         finishBtn.disabled = true;
-        finishBtn.textContent = "整理中...";
+        finishBtn.textContent = "整理並清空紀錄中...";
+        
         try {
             const token = await currentUser.getIdToken();
             const res = await fetch("/api/summarize", {
@@ -106,17 +111,21 @@ if (finishBtn) {
                     "Authorization": `Bearer ${token}`
                 }
             });
-            if (!res.ok) throw new Error("分析失敗");
+            
+            if (!res.ok) throw new Error("分析或刪除失敗");
             const summaryData = await res.json();
             
-            // 存入 localStorage 並清除前端訊息
+            // 1. 將分析結果存入 localStorage
             localStorage.setItem("card_summary", JSON.stringify(summaryData));
+            
+            // 2. 清除前端畫面訊息
             if (messages) messages.innerHTML = "";
             
+            // 3. 跳轉
             window.location.href = "card.html";
         } catch (err) {
             console.error(err);
-            alert("整理失敗");
+            alert("處理失敗，請稍後再試。");
             finishBtn.disabled = false;
             finishBtn.textContent = "結束聊天";
         }

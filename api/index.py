@@ -31,8 +31,6 @@ if not firebase_admin._apps:
             firebase_admin.initialize_app(cred)
         except Exception as e:
             print(f"Firebase Init Error: {e}")
-    else:
-        print("Warning: FIREBASE_SERVICE_ACCOUNT_JSON not set.")
 
 db = firestore.client()
 
@@ -42,7 +40,7 @@ genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 # --- RAG 檔案處理邏輯 ---
 def load_and_process_rag_data(file_name="my_data.txt"):
     file_path = os.path.join(os.path.dirname(__file__), file_name)
-    if not os.path.exists(file_path):
+    if not os.path.exists(file_path): 
         return []
     with open(file_path, 'r', encoding='utf-8') as f:
         text = f.read()
@@ -95,7 +93,7 @@ async def welcome(request: WelcomeRequest, authorization: str = Header(None)):
     try:
         decoded_token = auth.verify_id_token(token)
         uid = decoded_token['uid']
-        prompt = f"使用者剛登入，當地時間是 {request.local_time}。請給予自然的問候。禁止提具體日期時間，總長兩句內。"
+        prompt = f"使用者剛登入，當地時間是 {request.local_time}。請給予自然的問候。總長兩句內。"
         model = genai.GenerativeModel("gemini-2.5-flash", system_instruction=BASE_SYSTEM_PROMPT)
         response = model.generate_content(prompt)
         welcome_msg = response.text
@@ -114,34 +112,37 @@ async def chat(request: ChatRequest, authorization: str = Header(None)):
         decoded_token = auth.verify_id_token(token)
         uid = decoded_token['uid']
     except: uid = "test_user"
+    
     context = get_relevant_context(request.message, CHUNKS)
-    dynamic_system_prompt = BASE_SYSTEM_PROMPT
-    if context:
-        dynamic_system_prompt += f"\n\n以下是關於使用者的背景資料：\n---\n{context}\n---"
-    gemini_history = []
+    dynamic_prompt = BASE_SYSTEM_PROMPT
+    if context: dynamic_prompt += f"\n背景資料：\n{context}"
+    
     msgs_ref = db.collection('users').document(uid).collection('messages')
     recent_docs = msgs_ref.order_by('timestamp', direction=firestore.Query.DESCENDING).limit(10).stream()
     history_data = sorted([d.to_dict() for d in recent_docs], key=lambda x: x['timestamp'])
+    
+    gemini_history = []
     for msg in history_data:
         role = "user" if msg['sender'] == "user" else "model"
         gemini_history.append({"role": role, "parts": [msg['content']]})
+    
     if gemini_history and gemini_history[0]["role"] == "model":
         gemini_history.insert(0, {"role": "user", "parts": ["你好"]})
+
     try:
-        model = genai.GenerativeModel("gemini-2.5-flash", system_instruction=dynamic_system_prompt)
+        model = genai.GenerativeModel("gemini-2.5-flash", system_instruction=dynamic_prompt)
         chat_session = model.start_chat(history=gemini_history)
         response = chat_session.send_message(request.message)
-        ai_reply_text = response.text
+        ai_reply = response.text
         now = time.time()
         batch = db.batch()
         batch.set(msgs_ref.document(), {"content": request.message, "sender": "user", "timestamp": now})
-        batch.set(msgs_ref.document(), {"content": ai_reply_text, "sender": "ai", "timestamp": now + 0.1})
+        batch.set(msgs_ref.document(), {"content": ai_reply, "sender": "ai", "timestamp": now + 0.1})
         batch.commit()
-        return {"message": {"content": ai_reply_text}}
+        return {"message": {"content": ai_reply}}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- [新增：分析聊天內容 API] ---
 @app.post("/api/summarize")
 async def summarize(authorization: str = Header(None)):
     if not authorization or not authorization.startswith("Bearer "):
@@ -151,25 +152,33 @@ async def summarize(authorization: str = Header(None)):
         decoded_token = auth.verify_id_token(token)
         uid = decoded_token['uid']
         msgs_ref = db.collection('users').document(uid).collection('messages')
-        recent_docs = msgs_ref.order_by('timestamp', direction=firestore.Query.DESCENDING).limit(20).stream()
-        history = sorted([d.to_dict() for d in recent_docs], key=lambda x: x['timestamp'])
-        chat_text = "\n".join([f"{m['sender']}: {m['content']}" for m in history])
+        
+        # 1. 抓取內容進行分析
+        all_docs = msgs_ref.order_by('timestamp').stream()
+        docs_list = [d for d in all_docs]
+        chat_text = "\n".join([f"{d.to_dict()['sender']}: {d.to_dict()['content']}" for d in docs_list])
         
         prompt = f"""
-        請根據以下聊天內容進行分析：
+        請根據聊天內容分析並回傳 JSON：
         {chat_text}
         
-        請嚴格依照 JSON 格式回傳以下內容：
-        1. mood: 10字以內描述使用者心情。
-        2. events: 陣列，1~3件值得紀錄的事，每件不超過15字。
-        3. oneLiner: 15字以內用一句話描述今天。
-        4. messageToSelf: 50字以內模擬使用者的語氣與心情撰寫給自己的一段話。
-        格式範例：{{"mood": "...", "events": ["...", "..."], "oneLiner": "...", "messageToSelf": "..."}}
+        1. mood: 10字內形容心情。
+        2. events: 1~3件紀錄(15字內/件)。
+        3. oneLiner: 15字內描述今天。
+        4. messageToSelf: 50字內模擬語氣寫給自己。
         """
         
         model = genai.GenerativeModel("gemini-2.5-flash")
         response = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
-        return json.loads(response.text)
+        summary_result = json.loads(response.text)
+        
+        # 2. 批次刪除該使用者的所有對話紀錄
+        batch = db.batch()
+        for d in docs_list:
+            batch.delete(d.reference)
+        batch.commit()
+        
+        return summary_result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
