@@ -129,7 +129,7 @@ async def welcome(request: WelcomeRequest, authorization: str = Header(None)):
         
         prompt = f"使用者剛登入，當地時間是 {request.local_time}。請給予自然的問候。禁止提具體日期時間，總長兩句內。"
         
-        model = genai.GenerativeModel("gemini-1.5-flash", system_instruction=BASE_SYSTEM_PROMPT)
+        model = genai.GenerativeModel("gemini-2.5-flash", system_instruction=BASE_SYSTEM_PROMPT)
         response = model.generate_content(prompt)
         welcome_msg = response.text
 
