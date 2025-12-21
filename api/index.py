@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
-from google import genai
+import google.generativeai as genai
 import firebase_admin
 from firebase_admin import credentials, auth, firestore
 from langchain_text_splitters import RecursiveCharacterTextSplitter
