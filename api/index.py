@@ -100,7 +100,7 @@ async def welcome(request: WelcomeRequest, authorization: str = Header(None)):
     try:
         decoded_token = auth.verify_id_token(token)
         uid = decoded_token['uid']
-        prompt = f"使用者剛登入，當地時間是 {request.local_time}。請給予自然的問候。總長兩句內。"
+        prompt = f"使用者剛登入，當地時間是 {request.local_time}。請給予自然的問候，以今天如何做結尾。總長兩句內。"
         model = genai.GenerativeModel("gemini-2.5-flash", system_instruction=BASE_SYSTEM_PROMPT)
         response = model.generate_content(prompt)
         welcome_msg = response.text
