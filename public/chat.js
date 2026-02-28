@@ -7,14 +7,25 @@ onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
     
-    // 1. 載入歷史訊息
+    // 1. 先讀取歷史紀錄
     await loadHistory();
     
-    // 2. 處理來自 home.html 的訊息
+    // 2. 處理來自 home.html 的待發送訊息
     const pendingMessage = localStorage.getItem("pendingMessage");
     if (pendingMessage) {
       localStorage.removeItem("pendingMessage");
-      addMessage(pendingMessage, "user");
+      
+      // [關鍵修改]：檢查歷史紀錄是否已經包含這則訊息，避免重複顯示
+      // 假設 loadHistory 執行後，畫面上的 DOM 已經有剛才的訊息
+      // 我們可以簡單判斷若畫面訊息列表已經有這則訊息，就不要執行 addMessage
+      const messageBubbles = Array.from(document.querySelectorAll(".message.user"));
+      const isAlreadyDisplayed = messageBubbles.some(bubble => bubble.textContent === pendingMessage);
+      
+      if (!isAlreadyDisplayed) {
+          addMessage(pendingMessage, "user");
+      }
+      
+      // AI 回覆照常執行
       aiReply(pendingMessage);
     }
   } else {
